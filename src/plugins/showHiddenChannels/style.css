@@ -100,6 +100,43 @@
     justify-content: center;
 }
 
+.vc-shc-access-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.vc-shc-access-user {
+    all: unset;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--interactive-text-default);
+    background: var(--background-mod-subtle);
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.vc-shc-access-user:hover {
+    background: var(--background-mod-strong);
+}
+
+.vc-shc-access-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.vc-shc-access-empty {
+    padding: 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
 .vc-shc-hidden-channel-icon {
     cursor: not-allowed;
     margin-left: 6px;
