@@ -9,14 +9,15 @@ import { openUserProfile } from "@utils/discord";
 import { isTruthy } from "@utils/guards";
 import type { Channel, Role, User } from "@vencord/discord-types";
 import { PermissionOverwriteType } from "@vencord/discord-types/enums";
-import { findComponentByCodeLazy } from "@webpack";
-import { ContextMenuApi, GuildRoleStore, GuildStore, IconUtils, PermissionsBits, PermissionStore, UserStore, useStateFromStores } from "@webpack/common";
+import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
+import { ContextMenuApi, GuildRoleStore, GuildStore, IconUtils, PermissionsBits, PermissionStore, useEffect, UserStore, useStateFromStores } from "@webpack/common";
 
 import { cl } from "..";
 
 // Reuse profile role pills so role-enhancement plugins can handle these too.
 const ProfileRolePill = findComponentByCodeLazy("enableTooltip:!1", ".colorString");
 const UserContextMenu = findComponentByCodeLazy('navId:"user-context"');
+const GuildActions = findByPropsLazy("requestMembersById", "banUser");
 
 function roleCanAccess(role: Role, channel: Channel, permission: bigint) {
     const { guild_id: guildId, permissionOverwrites } = channel;
@@ -70,13 +71,18 @@ function AllowedUsersAndRoles({ channel }: { channel: Channel; }) {
     if (everyoneRole) roles = [everyoneRole];
 
     const userIds = Object.values(channel.permissionOverwrites)
-        .filter(overwrite => overwrite.type === PermissionOverwriteType.MEMBER)
+        .filter(overwrite => (
+            overwrite.type === PermissionOverwriteType.MEMBER
+            && (overwrite.allow & permission) === permission
+        ))
         .map(overwrite => overwrite.id);
     if (guild?.ownerId) userIds.unshift(guild.ownerId);
 
-    const uniqueUserIds = Array.from(new Set(userIds)).filter(userId => (
-        PermissionStore.computePermissions(channel, guildId, channel.permissionOverwrites, userId) & permission
-    ) === permission);
+    const uniqueUserIds = Array.from(new Set(userIds));
+
+    useEffect(() => {
+        if (uniqueUserIds.length) GuildActions.requestMembersById(guildId, uniqueUserIds, false);
+    }, [channel.id, uniqueUserIds.join(",")]);
 
     const users = useStateFromStores(
         [UserStore],
