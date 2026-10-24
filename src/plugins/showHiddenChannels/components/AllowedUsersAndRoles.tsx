@@ -10,7 +10,7 @@ import { isTruthy } from "@utils/guards";
 import type { Channel, Role, User } from "@vencord/discord-types";
 import { PermissionOverwriteType } from "@vencord/discord-types/enums";
 import { findByPropsLazy, findComponentByCodeLazy } from "@webpack";
-import { ContextMenuApi, GuildRoleStore, GuildStore, IconUtils, PermissionsBits, PermissionStore, useEffect, UserStore, useStateFromStores } from "@webpack/common";
+import { ContextMenuApi, GuildMemberStore, GuildRoleStore, GuildStore, IconUtils, PermissionsBits, PermissionStore, useEffect, UserStore, useStateFromStores } from "@webpack/common";
 
 import { cl } from "..";
 
@@ -71,10 +71,7 @@ function AllowedUsersAndRoles({ channel }: { channel: Channel; }) {
     if (everyoneRole) roles = [everyoneRole];
 
     const userIds = Object.values(channel.permissionOverwrites)
-        .filter(overwrite => (
-            overwrite.type === PermissionOverwriteType.MEMBER
-            && (overwrite.allow & permission) === permission
-        ))
+        .filter(overwrite => overwrite.type === PermissionOverwriteType.MEMBER)
         .map(overwrite => overwrite.id);
     if (guild?.ownerId) userIds.unshift(guild.ownerId);
 
@@ -85,8 +82,13 @@ function AllowedUsersAndRoles({ channel }: { channel: Channel; }) {
     }, [channel.id, uniqueUserIds.join(",")]);
 
     const users = useStateFromStores(
-        [UserStore],
-        () => uniqueUserIds.map(userId => UserStore.getUser(userId)).filter(isTruthy),
+        [GuildMemberStore, UserStore],
+        () => uniqueUserIds
+            .filter(userId => (
+                PermissionStore.computePermissions(channel, guildId, channel.permissionOverwrites, userId) & permission
+            ) === permission)
+            .map(userId => UserStore.getUser(userId))
+            .filter(isTruthy),
         [channel.id, uniqueUserIds.join(",")]
     );
 
